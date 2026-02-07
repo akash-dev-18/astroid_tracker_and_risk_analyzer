@@ -19,3 +19,4 @@ class Watchlist(Base):
     
     def __repr__(self):
         return f"<Watchlist(user={self.user_id}, asteroid={self.asteroid_id})>"
+
