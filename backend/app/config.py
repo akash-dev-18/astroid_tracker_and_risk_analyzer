@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     
     NASA_API_KEY: str = "DEMO_KEY"
     
-    FRONTEND_URL: str = "http://localhost:5173"
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    FRONTEND_URL: str = "http://localhost:8080"
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:8080", "http://localhost:5173", "http://localhost:3000"]
     
     ENABLE_SCHEDULER: bool = True
 

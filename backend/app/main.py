@@ -46,7 +46,14 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-app.add_middleware(CORSMiddleware, allow_origins=settings.ALLOWED_ORIGINS, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"http://localhost:\d+",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(asteroids.router, prefix="/api/v1")
