@@ -1,6 +1,7 @@
 # Cosmic Watch 🌌
 
 > **Submission for Hackathon 2026** - Interstellar Asteroid Tracker & Risk Analyser
+> **[👉 Check out the Live App here!](https://astroid-tracker-and-risk-analyzer-fb6jeeg2f.vercel.app)**
 
 **Cosmic Watch** is a robust, full-stack platform that transforms complex NASA Near-Earth Object (NEO) data into an accessible, real-time monitoring dashboard for researchers and space enthusiasts.
 
