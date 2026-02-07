@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     DEBUG: bool = False
     
-    SECRET_KEY: str = "your-super-secret-key-change-in-production"
+    SECRET_KEY: str = "SECRET_KEY"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     
