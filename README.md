@@ -1,175 +1,135 @@
-# Asteroid Tracker and Risk Analyzer
+# Cosmic Watch 🌌
 
-A comprehensive Near-Earth Object (NEO) monitoring system with real-time tracking, risk assessment, and interactive 3D visualization.
+> **Submission for Hackathon 2026** - Interstellar Asteroid Tracker & Risk Analyser
 
-## 🚀 Features
+**Cosmic Watch** is a robust, full-stack platform that transforms complex NASA Near-Earth Object (NEO) data into an accessible, real-time monitoring dashboard for researchers and space enthusiasts.
 
-- **NASA API Integration**: Real-time asteroid data from NASA's NeoWs API
-- **User Authentication**: Secure JWT-based authentication system
-- **Advanced Filtering**: Filter asteroids by date, hazard status, and distance
-- **Risk Assessment**: AI-powered risk scoring for potentially hazardous asteroids
-- **Watchlist**: Track specific asteroids of interest
-- **3D Visualization**: Interactive orbital visualization with realistic rendering
-- **Real-Time Chat**: Per-asteroid discussion rooms with WebSocket support
-- **Responsive UI**: Modern, professional interface built with React and Tailwind CSS
+![Cosmic Watch Banner](/home/demon/astroid_tracker_and_risk_analyzer/fronten/public/screenshot.png)
+_(Note: Replace with actual screenshot path if available)_
 
-## 🏗️ Tech Stack
+---
 
-### Backend
+## 🚀 Features & Capabilities
 
-- **FastAPI**: High-performance Python web framework
-- **SQLAlchemy**: SQL toolkit and ORM
-- **PostgreSQL/SQLite**: Database storage
-- **python-socketio**: WebSocket support for real-time chat
-- **APScheduler**: Background task scheduling
-- **JWT**: Secure authentication
+### Core Functionality (50 Points)
+
+- **Real-Time Data Feed**: Integrates directly with **NASA NeoWs API** to fetch live asteroid data including velocity, diameter, and miss distance.
+- **Risk Analysis Engine**: Automatically calculates a "Risk Score" based on hazardous status, proximity, and size.
+- **User Authentication**: Secure JWT-based signup/login for researchers to save preferences.
+- **Watchlist & Alerts**: Users can "watch" specific asteroids and set distance thresholds for alerts.
+- **Advanced Filtering**: Filter by date, hazard status, diameter, and velocity.
+
+### UI/UX Design (10 Points)
+
+- **Space-Themed Interface**: Immersive dark mode with glassmorphism effects.
+- **Responsive Layout**: Fully functional on desktop, tablet, and mobile devices.
+- **Interactive Dashboard**: Dynamic charts and real-time updates.
+
+### 🐳 Docker & Deployment (20 Points)
+
+- **Containerized**: Fully Dockerized backend and frontend.
+- **Orchestration**: Single `docker-compose.yml` for one-command startup.
+- **Optimization**: Multi-stage builds for minimal image size.
+- **Health Checks**: Robust `curl`-based health checks ensuring service reliability.
+
+### 🧪 API Documentation (10 Points)
+
+- **Postman Collection**: Complete API documentation included in `backend/postman_collection.json`.
+- **Testing**: Pre-configured environments for easy testing of all endpoints.
+
+### ✨ Bonus Features (10 Points)
+
+- **3D Visualization (5 Pts)**: Interactive **Three.js** solar system showing accurate asteroid orbits, variable sizes, and hazard color-coding (Red/Yellow).
+- **Real-Time Chat (5 Pts)**: **Socket.io** powered live discussion rooms for every asteroid. See who's online and discuss potential impacts!
+
+---
+
+## 🛠️ Tech Stack
 
 ### Frontend
 
-- **React 18**: Modern UI library
-- **TypeScript**: Type-safe JavaScript
-- **Vite**: Fast build tool
-- **Three.js**: 3D graphics rendering
-- **TanStack Query**: Data fetching and caching
-- **Tailwind CSS**: Utility-first CSS framework
-- **shadcn/ui**: Beautiful UI components
+- **Framework**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + Shadcn/UI + Lucide Icons
+- **3D Graphics**: Three.js + React Three Fiber
+- **State Management**: TanStack Query (React Query)
+- **Real-time**: Socket.io-client
 
-## 📦 Quick Start with Docker
+### Backend
 
-### Prerequisites
+- **Framework**: FastAPI (Python 3.11)
+- **Database**: SQLite (Dev) / PostgreSQL (Prod ready)
+- **ORM**: SQLAlchemy + Pydantic
+- **Real-time**: Python-SocketIO
+- **Scheduling**: APScheduler (for background NASA sync)
 
-- Docker
-- Docker Compose
+---
 
-### One-Command Deployment
+## 📦 Installation & Setup
+
+### Option 1: Docker (Recommended)
+
+The easiest way to run the full stack.
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone <repository-url>
 cd astroid_tracker_and_risk_analyzer
 
-# Configure environment variables (optional)
-cp .env.example .env
-# Edit .env with your NASA API key
-
-# Start all services
-docker-compose up -d
+# 2. Start services (Frontend + Backend)
+docker-compose up
 ```
 
-### Access the Application
+- Frontend: `http://localhost:80`
+- Backend: `http://localhost:8000`
 
-- **Frontend**: http://localhost
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
+### Option 2: Local Development
 
-### Stop all services
-
-```bash
-docker-compose down
-```
-
-### View logs
-
-```bash
-docker-compose logs -f
-```
-
-## 🛠️ Development Setup
-
-### Backend Development
+#### Backend
 
 ```bash
 cd backend
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Run database migrations
 alembic upgrade head
-
-# Start development server
 uvicorn app.main:app --reload
 ```
 
-### Frontend Development
+#### Frontend
 
 ```bash
 cd fronten
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-## 🌍 Environment Variables
+---
 
-### Backend (.env)
+## 📝 API Documentation
 
-```
-NASA_API_KEY=your_api_key_here
-SECRET_KEY=your_secret_key
-DATABASE_URL=sqlite:///./cosmic_watch.db
-DEBUG=true
-```
+A comprehensive Postman collection is available at:
+`backend/postman_collection.json`
 
-### Frontend (.env)
+Import this file into Postman to test:
 
-```
-VITE_API_BASE_URL=http://localhost:8000
-```
+- User Auth (Register/Login)
+- Asteroid Feed & Search
+- Watchlist Management
+- Alert System
 
-## 📊 API Documentation
+---
 
-Interactive API documentation is available at:
+## 🌍 Free Deployment
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+This project is optimized for free tier deployment:
 
-## 🎯 Project Structure
+- **Frontend**: Deploy `fronten/` to **Vercel**.
+- **Backend**: Deploy `backend/` to **Render** (Docker).
+- **Guide**: See [`DEPLOY.md`](DEPLOY.md) for step-by-step instructions.
 
-```
-astroid_tracker_and_risk_analyzer/
-├── backend/
-│   ├── app/
-│   │   ├── api/          # API route handlers
-│   │   ├── models/       # Database models
-│   │   ├── services/     # Business logic
-│   │   └── utils/        # Utilities & helpers
-│   ├── Dockerfile
-│   └── requirements.txt
-├── fronten/
-│   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── pages/        # Page components
-│   │   ├── lib/          # Utilities
-│   │   └── types/        # TypeScript types
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── package.json
-└── docker-compose.yml
-```
+---
 
-## 🏆 Score: 90/100
+## 📄 License & Team
 
-- ✅ Core Features (50/50)
-- ✅ UI/UX (10/10)
-- ✅ 3D Graphics Bonus (5/5)
-- ✅ Real-Time Chat Bonus (5/5)
-- ✅ Docker Deployment (20/20)
-- ⏳ Postman Collection (0/10)
-
-## 📝 License
-
-MIT License
-
-## 🙏 Acknowledgments
-
-- NASA NeoWs API for asteroid data
-- React and FastAPI communities
-- Three.js for 3D rendering capabilities
+Developed for Hackathon 2026.
+Licensed under MIT.
