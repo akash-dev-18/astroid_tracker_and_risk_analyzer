@@ -1,6 +1,7 @@
 # Cosmic Watch - Backend Design Document
 
 ## 🎯 Overview
+
 A FastAPI-based REST API with JWT authentication, SQLite database, and NASA API integration for real-time asteroid tracking.
 
 ---
@@ -115,9 +116,6 @@ backend/
 │   ├── test_asteroids.py
 │   └── test_watchlist.py
 │
-├── alembic/                      # Database migrations (optional for MVP)
-│   ├── versions/
-│   └── env.py
 │
 ├── data/
 │   └── cosmic_watch.db           # SQLite database file
@@ -135,6 +133,7 @@ backend/
 ## 🗄️ Database Models (SQLAlchemy)
 
 ### **models/user.py**
+
 ```python
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
@@ -149,13 +148,14 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Relationships
     watchlist = relationship("Watchlist", back_populates="user", cascade="all, delete-orphan")
     alerts = relationship("Alert", back_populates="user", cascade="all, delete-orphan")
 ```
 
 ### **models/asteroid.py**
+
 ```python
 from sqlalchemy import Column, String, Float, Boolean, DateTime, Text
 from sqlalchemy.orm import relationship
@@ -173,7 +173,7 @@ class Asteroid(Base):
     estimated_diameter_max = Column(Float)  # km
     nasa_jpl_url = Column(Text)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
+
     # Relationships
     close_approaches = relationship("CloseApproach", back_populates="asteroid", cascade="all, delete-orphan")
     watchlist_entries = relationship("Watchlist", back_populates="asteroid", cascade="all, delete-orphan")
@@ -181,6 +181,7 @@ class Asteroid(Base):
 ```
 
 ### **models/close_approach.py**
+
 ```python
 from sqlalchemy import Column, Integer, String, Float, Date, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -197,12 +198,13 @@ class CloseApproach(Base):
     miss_distance_km = Column(Float)  # kilometers
     miss_distance_lunar = Column(Float)  # lunar distances
     orbiting_body = Column(String, default="Earth")
-    
+
     # Relationships
     asteroid = relationship("Asteroid", back_populates="close_approaches")
 ```
 
 ### **models/watchlist.py**
+
 ```python
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
@@ -217,16 +219,17 @@ class Watchlist(Base):
     asteroid_id = Column(String, ForeignKey("asteroids.id", ondelete="CASCADE"), nullable=False)
     alert_distance_km = Column(Float, default=1000000)  # Default: 1M km
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Ensure user can't watch same asteroid twice
     __table_args__ = (UniqueConstraint('user_id', 'asteroid_id', name='_user_asteroid_uc'),)
-    
+
     # Relationships
     user = relationship("User", back_populates="watchlist")
     asteroid = relationship("Asteroid", back_populates="watchlist_entries")
 ```
 
 ### **models/alert.py**
+
 ```python
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -244,7 +247,7 @@ class Alert(Base):
     is_read = Column(Boolean, default=False, index=True)
     approach_date = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Relationships
     user = relationship("User", back_populates="alerts")
     asteroid = relationship("Asteroid", back_populates="alerts")
@@ -255,6 +258,7 @@ class Alert(Base):
 ## 📝 Pydantic Schemas
 
 ### **schemas/user.py**
+
 ```python
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
@@ -273,7 +277,7 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -287,6 +291,7 @@ class TokenData(BaseModel):
 ```
 
 ### **schemas/asteroid.py**
+
 ```python
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional
@@ -303,7 +308,7 @@ class CloseApproachBase(BaseModel):
 class CloseApproachResponse(CloseApproachBase):
     id: int
     asteroid_id: str
-    
+
     class Config:
         from_attributes = True
 
@@ -320,7 +325,7 @@ class AsteroidResponse(AsteroidBase):
     last_updated: datetime
     close_approaches: List[CloseApproachResponse] = []
     risk_score: Optional[str] = None  # Computed field
-    
+
     class Config:
         from_attributes = True
 
@@ -330,6 +335,7 @@ class AsteroidFeedResponse(BaseModel):
 ```
 
 ### **schemas/watchlist.py**
+
 ```python
 from pydantic import BaseModel
 from datetime import datetime
@@ -350,12 +356,13 @@ class WatchlistResponse(BaseModel):
     alert_distance_km: float
     created_at: datetime
     asteroid: Optional[AsteroidResponse] = None
-    
+
     class Config:
         from_attributes = True
 ```
 
 ### **schemas/alert.py**
+
 ```python
 from pydantic import BaseModel
 from datetime import datetime
@@ -371,7 +378,7 @@ class AlertResponse(BaseModel):
     approach_date: Optional[datetime]
     created_at: datetime
     asteroid_name: Optional[str] = None  # Joined field
-    
+
     class Config:
         from_attributes = True
 
@@ -384,6 +391,7 @@ class AlertUpdate(BaseModel):
 ## 🔌 API Endpoints (Detailed)
 
 ### **api/v1/auth.py**
+
 ```python
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -398,7 +406,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user
-    
+
     - **email**: Valid email address
     - **password**: Minimum 8 characters
     """
@@ -409,20 +417,20 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
+
     # Validate password length
     if len(user_data.password) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password must be at least 8 characters"
         )
-    
+
     # Create user
     user = crud.user.create(db, obj_in=user_data)
-    
+
     # Generate JWT token
     access_token = auth_service.create_access_token(data={"sub": str(user.id), "email": user.email})
-    
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -430,28 +438,28 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """
     Login with email and password
-    
+
     Returns JWT access token
     """
     # Authenticate user
     user = crud.user.authenticate(db, email=credentials.email, password=credentials.password)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive"
         )
-    
+
     # Generate token
     access_token = auth_service.create_access_token(data={"sub": str(user.id), "email": user.email})
-    
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -464,6 +472,7 @@ async def get_current_user_info(current_user = Depends(get_current_user)):
 ```
 
 ### **api/v1/asteroids.py**
+
 ```python
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -490,7 +499,7 @@ async def get_asteroid_feed(
 ):
     """
     Get asteroid feed with optional filters
-    
+
     Returns list of asteroids with their close approach data
     """
     # Default dates
@@ -498,7 +507,7 @@ async def get_asteroid_feed(
         start_date = date.today()
     if not end_date:
         end_date = start_date + timedelta(days=7)
-    
+
     # Fetch from database
     asteroids = crud.asteroid.get_feed(
         db,
@@ -511,12 +520,12 @@ async def get_asteroid_feed(
         limit=limit,
         offset=offset
     )
-    
+
     # Calculate risk scores
     for asteroid in asteroids:
         if asteroid.close_approaches:
             asteroid.risk_score = calculate_risk_score(asteroid, asteroid.close_approaches[0])
-    
+
     return {
         "count": len(asteroids),
         "asteroids": asteroids
@@ -544,22 +553,23 @@ async def get_asteroid_by_id(
     Get detailed information about a specific asteroid
     """
     asteroid = crud.asteroid.get(db, id=asteroid_id)
-    
+
     if not asteroid:
         raise HTTPException(
             status_code=404,
             detail=f"Asteroid with ID {asteroid_id} not found"
         )
-    
+
     # Calculate risk score for the next approach
     if asteroid.close_approaches:
         next_approach = min(asteroid.close_approaches, key=lambda x: x.approach_date)
         asteroid.risk_score = calculate_risk_score(asteroid, next_approach)
-    
+
     return asteroid
 ```
 
 ### **api/v1/watchlist.py**
+
 ```python
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -591,7 +601,7 @@ async def add_to_watchlist(
 ):
     """
     Add asteroid to user's watchlist
-    
+
     - **asteroid_id**: NASA NEO ID
     - **alert_distance_km**: Trigger alert when closer than this (default: 1M km)
     """
@@ -602,11 +612,11 @@ async def add_to_watchlist(
             status_code=404,
             detail=f"Asteroid {watchlist_data.asteroid_id} not found"
         )
-    
+
     # Check if already in watchlist
     existing = crud.watchlist.get_by_user_and_asteroid(
-        db, 
-        user_id=current_user.id, 
+        db,
+        user_id=current_user.id,
         asteroid_id=watchlist_data.asteroid_id
     )
     if existing:
@@ -614,7 +624,7 @@ async def add_to_watchlist(
             status_code=400,
             detail="Asteroid already in your watchlist"
         )
-    
+
     # Create watchlist entry
     watchlist_entry = crud.watchlist.create(
         db,
@@ -622,7 +632,7 @@ async def add_to_watchlist(
         asteroid_id=watchlist_data.asteroid_id,
         alert_distance_km=watchlist_data.alert_distance_km
     )
-    
+
     return watchlist_entry
 
 
@@ -641,10 +651,10 @@ async def update_watchlist_entry(
         user_id=current_user.id,
         asteroid_id=asteroid_id
     )
-    
+
     if not entry:
         raise HTTPException(status_code=404, detail="Watchlist entry not found")
-    
+
     updated_entry = crud.watchlist.update(db, db_obj=entry, obj_in=update_data)
     return updated_entry
 
@@ -663,15 +673,16 @@ async def remove_from_watchlist(
         user_id=current_user.id,
         asteroid_id=asteroid_id
     )
-    
+
     if not entry:
         raise HTTPException(status_code=404, detail="Watchlist entry not found")
-    
+
     crud.watchlist.remove(db, id=entry.id)
     return None
 ```
 
 ### **api/v1/alerts.py**
+
 ```python
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -714,10 +725,10 @@ async def mark_alert_as_read(
     Mark an alert as read
     """
     alert = crud.alert.get(db, id=alert_id)
-    
+
     if not alert or alert.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Alert not found")
-    
+
     updated_alert = crud.alert.update(db, db_obj=alert, obj_in={"is_read": True})
     return updated_alert
 
@@ -732,10 +743,10 @@ async def delete_alert(
     Delete an alert
     """
     alert = crud.alert.get(db, id=alert_id)
-    
+
     if not alert or alert.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Alert not found")
-    
+
     crud.alert.remove(db, id=alert_id)
     return None
 ```
@@ -745,6 +756,7 @@ async def delete_alert(
 ## 🔐 Security Implementation
 
 ### **core/security.py**
+
 ```python
 from datetime import datetime, timedelta
 from typing import Optional
@@ -766,27 +778,27 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     Create JWT access token
-    
+
     Args:
         data: Payload to encode (should contain 'sub' with user_id)
         expires_delta: Token expiration time (default: 7 days)
     """
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(days=7)
-    
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    
+
     return encoded_jwt
 
 def decode_access_token(token: str) -> Optional[dict]:
     """
     Decode and verify JWT token
-    
+
     Returns payload if valid, None if invalid
     """
     try:
@@ -797,6 +809,7 @@ def decode_access_token(token: str) -> Optional[dict]:
 ```
 
 ### **api/deps.py**
+
 ```python
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -822,39 +835,39 @@ def get_current_user(
 ):
     """
     Dependency to get current authenticated user
-    
+
     Extracts JWT from Authorization header and validates it
     """
     token = credentials.credentials
-    
+
     # Decode token
     payload = decode_access_token(token)
-    
+
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user_id: int = int(payload.get("sub"))
-    
+
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Get user from database
     user = crud.user.get(db, id=user_id)
-    
+
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    
+
     return user
 ```
 
@@ -863,6 +876,7 @@ def get_current_user(
 ## 🛠️ Services
 
 ### **services/nasa_service.py**
+
 ```python
 import httpx
 from typing import Dict, List
@@ -874,34 +888,34 @@ logger = logging.getLogger(__name__)
 
 class NASAService:
     """Client for NASA NeoWs API"""
-    
+
     BASE_URL = "https://api.nasa.gov/neo/rest/v1"
-    
+
     def __init__(self):
         self.api_key = settings.NASA_API_KEY
-    
+
     async def fetch_feed(self, start_date: date, end_date: date) -> Dict:
         """
         Fetch asteroid feed from NASA API
-        
+
         Args:
             start_date: Start date for feed
             end_date: End date for feed (max 7 days from start)
-        
+
         Returns:
             Parsed JSON response
         """
         # NASA API allows max 7 days
         if (end_date - start_date).days > 7:
             end_date = start_date + timedelta(days=7)
-        
+
         url = f"{self.BASE_URL}/feed"
         params = {
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "api_key": self.api_key
         }
-        
+
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(url, params=params)
@@ -910,20 +924,20 @@ class NASAService:
         except httpx.HTTPError as e:
             logger.error(f"NASA API error: {e}")
             raise
-    
+
     async def lookup_asteroid(self, asteroid_id: str) -> Dict:
         """
         Lookup specific asteroid by ID
-        
+
         Args:
             asteroid_id: NASA NEO ID
-        
+
         Returns:
             Asteroid data
         """
         url = f"{self.BASE_URL}/neo/{asteroid_id}"
         params = {"api_key": self.api_key}
-        
+
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(url, params=params)
@@ -932,17 +946,17 @@ class NASAService:
         except httpx.HTTPError as e:
             logger.error(f"NASA API lookup error: {e}")
             raise
-    
+
     def parse_feed_response(self, response: Dict) -> List[Dict]:
         """
         Parse NASA feed response into structured data
-        
+
         Returns list of asteroids with close approaches
         """
         asteroids = []
-        
+
         near_earth_objects = response.get("near_earth_objects", {})
-        
+
         for date_str, neos in near_earth_objects.items():
             for neo in neos:
                 asteroid_data = {
@@ -955,7 +969,7 @@ class NASAService:
                     "nasa_jpl_url": neo.get("nasa_jpl_url"),
                     "close_approaches": []
                 }
-                
+
                 # Parse close approach data
                 for approach in neo.get("close_approach_data", []):
                     approach_data = {
@@ -967,9 +981,9 @@ class NASAService:
                         "orbiting_body": approach["orbiting_body"]
                     }
                     asteroid_data["close_approaches"].append(approach_data)
-                
+
                 asteroids.append(asteroid_data)
-        
+
         return asteroids
 
 # Singleton instance
@@ -977,6 +991,7 @@ nasa_service = NASAService()
 ```
 
 ### **services/risk_service.py**
+
 ```python
 from app.models.asteroid import Asteroid
 from app.models.close_approach import CloseApproach
@@ -984,15 +999,15 @@ from app.models.close_approach import CloseApproach
 def calculate_risk_score(asteroid: Asteroid, approach: CloseApproach) -> str:
     """
     Calculate risk score for an asteroid based on multiple factors
-    
+
     Returns: "EXTREME", "HIGH", "MODERATE", or "LOW"
     """
     score = 0
-    
+
     # Factor 1: Hazardous status (0-50 points)
     if asteroid.is_hazardous:
         score += 50
-    
+
     # Factor 2: Size (0-30 points)
     diameter = asteroid.estimated_diameter_max or 0
     if diameter > 1.0:  # > 1 km
@@ -1001,7 +1016,7 @@ def calculate_risk_score(asteroid: Asteroid, approach: CloseApproach) -> str:
         score += 20
     elif diameter > 0.1:  # 0.1 - 0.5 km
         score += 10
-    
+
     # Factor 3: Miss distance (0-20 points)
     lunar_distance = approach.miss_distance_lunar
     if lunar_distance < 1:  # Closer than Moon
@@ -1012,7 +1027,7 @@ def calculate_risk_score(asteroid: Asteroid, approach: CloseApproach) -> str:
         score += 10
     elif lunar_distance < 20:
         score += 5
-    
+
     # Categorize
     if score >= 70:
         return "EXTREME"
@@ -1025,6 +1040,7 @@ def calculate_risk_score(asteroid: Asteroid, approach: CloseApproach) -> str:
 ```
 
 ### **services/alert_service.py**
+
 ```python
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -1036,32 +1052,32 @@ logger = logging.getLogger(__name__)
 
 class AlertService:
     """Service for generating and managing alerts"""
-    
+
     def generate_alerts_for_approaches(self, db: Session):
         """
         Check all watchlist entries and generate alerts for upcoming close approaches
-        
+
         Called by background scheduler
         """
         # Get all watchlist entries
         all_watchlist = crud.watchlist.get_all(db)
-        
+
         alerts_created = 0
-        
+
         for entry in all_watchlist:
             asteroid = entry.asteroid
-            
+
             # Check upcoming approaches (next 30 days)
             upcoming_approaches = [
                 app for app in asteroid.close_approaches
                 if app.approach_date >= datetime.now().date()
                 and app.approach_date <= (datetime.now() + timedelta(days=30)).date()
             ]
-            
+
             for approach in upcoming_approaches:
                 # Check if approach is closer than user's threshold
                 if approach.miss_distance_km <= entry.alert_distance_km:
-                    
+
                     # Check if alert already exists
                     existing_alert = crud.alert.get_by_user_asteroid_date(
                         db,
@@ -1069,7 +1085,7 @@ class AlertService:
                         asteroid_id=asteroid.id,
                         approach_date=approach.approach_date_full
                     )
-                    
+
                     if not existing_alert:
                         # Create alert
                         message = (
@@ -1077,7 +1093,7 @@ class AlertService:
                             f"{approach.miss_distance_lunar:.2f} lunar distances "
                             f"on {approach.approach_date.strftime('%B %d, %Y')}"
                         )
-                        
+
                         crud.alert.create(
                             db,
                             user_id=entry.user_id,
@@ -1086,9 +1102,9 @@ class AlertService:
                             alert_type="close_approach",
                             approach_date=approach.approach_date_full
                         )
-                        
+
                         alerts_created += 1
-        
+
         logger.info(f"Generated {alerts_created} new alerts")
         return alerts_created
 
@@ -1101,6 +1117,7 @@ alert_service = AlertService()
 ## ⏰ Background Scheduler
 
 ### **utils/scheduler.py**
+
 ```python
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -1116,13 +1133,13 @@ logger = logging.getLogger(__name__)
 
 class AsteroidScheduler:
     """Background scheduler for periodic tasks"""
-    
+
     def __init__(self):
         self.scheduler = BackgroundScheduler()
-    
+
     def start(self):
         """Start all scheduled jobs"""
-        
+
         # Job 1: Fetch NASA data every 6 hours
         self.scheduler.add_job(
             func=self.fetch_nasa_data,
@@ -1131,7 +1148,7 @@ class AsteroidScheduler:
             name="Fetch NASA asteroid data",
             replace_existing=True
         )
-        
+
         # Job 2: Generate alerts daily at 8 AM
         self.scheduler.add_job(
             func=self.generate_alerts,
@@ -1140,38 +1157,38 @@ class AsteroidScheduler:
             name="Generate user alerts",
             replace_existing=True
         )
-        
+
         # Start scheduler
         self.scheduler.start()
         logger.info("Background scheduler started")
-    
+
     def shutdown(self):
         """Gracefully shutdown scheduler"""
         self.scheduler.shutdown()
         logger.info("Background scheduler stopped")
-    
+
     async def fetch_nasa_data(self):
         """
         Fetch latest asteroid data from NASA and update database
         """
         db = SessionLocal()
-        
+
         try:
             logger.info("Starting NASA data fetch...")
-            
+
             # Fetch next 7 days
             start_date = date.today()
             end_date = start_date + timedelta(days=7)
-            
+
             # Get data from NASA
             response = await nasa_service.fetch_feed(start_date, end_date)
             asteroids_data = nasa_service.parse_feed_response(response)
-            
+
             # Upsert to database
             for asteroid_data in asteroids_data:
                 # Upsert asteroid
                 asteroid = crud.asteroid.upsert(db, asteroid_data=asteroid_data)
-                
+
                 # Upsert close approaches
                 for approach_data in asteroid_data["close_approaches"]:
                     crud.close_approach.upsert(
@@ -1179,22 +1196,22 @@ class AsteroidScheduler:
                         asteroid_id=asteroid.id,
                         approach_data=approach_data
                     )
-            
+
             db.commit()
             logger.info(f"Successfully updated {len(asteroids_data)} asteroids")
-            
+
         except Exception as e:
             logger.error(f"Error fetching NASA data: {e}")
             db.rollback()
         finally:
             db.close()
-    
+
     def generate_alerts(self):
         """
         Generate alerts for users based on watchlist
         """
         db = SessionLocal()
-        
+
         try:
             logger.info("Generating alerts...")
             alerts_created = alert_service.generate_alerts_for_approaches(db)
@@ -1215,6 +1232,7 @@ asteroid_scheduler = AsteroidScheduler()
 ## ⚙️ Configuration
 
 ### **config.py**
+
 ```python
 from pydantic_settings import BaseSettings
 from typing import Optional
@@ -1224,25 +1242,25 @@ class Settings(BaseSettings):
     APP_NAME: str = "Cosmic Watch API"
     VERSION: str = "1.0.0"
     DEBUG: bool = False
-    
+
     # Security
     SECRET_KEY: str  # Must be set in .env
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 7
-    
+
     # Database
     DATABASE_URL: str = "sqlite:///./data/cosmic_watch.db"
-    
+
     # NASA API
     NASA_API_KEY: str = "DEMO_KEY"  # Get real key from https://api.nasa.gov
-    
+
     # CORS
     FRONTEND_URL: str = "http://localhost:5173"
     ALLOWED_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000"]
-    
+
     # Scheduler
     ENABLE_SCHEDULER: bool = True
-    
+
     class Config:
         env_file = ".env"
         case_sensitive = True
@@ -1251,6 +1269,7 @@ settings = Settings()
 ```
 
 ### **.env.example**
+
 ```bash
 # Security
 SECRET_KEY=your-super-secret-key-change-this-in-production
@@ -1273,6 +1292,7 @@ DEBUG=False
 ## 🚀 Main Application
 
 ### **main.py**
+
 ```python
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -1296,17 +1316,17 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Cosmic Watch API...")
-    
+
     # Create database tables
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created")
-    
+
     # Start background scheduler
     if settings.ENABLE_SCHEDULER:
         asteroid_scheduler.start()
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Cosmic Watch API...")
     if settings.ENABLE_SCHEDULER:
@@ -1354,6 +1374,7 @@ async def health_check():
 ## 🐳 Docker Configuration
 
 ### **Dockerfile**
+
 ```dockerfile
 FROM python:3.11-slim
 
@@ -1385,8 +1406,9 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ### **docker-compose.yml**
+
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   backend:
@@ -1394,7 +1416,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/app/data  # Persist SQLite database
+      - ./data:/app/data # Persist SQLite database
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - NASA_API_KEY=${NASA_API_KEY}
@@ -1410,6 +1432,7 @@ services:
 ## 📋 Requirements
 
 ### **requirements.txt**
+
 ```txt
 # FastAPI
 fastapi==0.109.0
@@ -1448,6 +1471,7 @@ httpx==0.26.0
 ## 🧪 Testing
 
 ### **tests/conftest.py**
+
 ```python
 import pytest
 from fastapi.testclient import TestClient
@@ -1479,13 +1503,14 @@ def client(db):
             yield db
         finally:
             pass
-    
+
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
     app.dependency_overrides.clear()
 ```
 
 ### **tests/test_auth.py**
+
 ```python
 def test_register_user(client):
     response = client.post(
@@ -1501,7 +1526,7 @@ def test_login_user(client):
         "/api/v1/auth/register",
         json={"email": "test@example.com", "password": "testpass123"}
     )
-    
+
     # Then login
     response = client.post(
         "/api/v1/auth/login",
@@ -1523,6 +1548,7 @@ def test_login_invalid_credentials(client):
 ## ✅ Development Checklist
 
 ### Phase 1: Setup (3 hours)
+
 - [ ] Initialize FastAPI project
 - [ ] Setup SQLAlchemy + SQLite
 - [ ] Configure environment variables
@@ -1531,6 +1557,7 @@ def test_login_invalid_credentials(client):
 - [ ] Setup CORS middleware
 
 ### Phase 2: Authentication (3 hours)
+
 - [ ] Implement password hashing
 - [ ] Implement JWT creation/verification
 - [ ] Build auth endpoints (register, login, me)
@@ -1538,6 +1565,7 @@ def test_login_invalid_credentials(client):
 - [ ] Write auth tests
 
 ### Phase 3: NASA Integration (4 hours)
+
 - [ ] Create NASA service client
 - [ ] Implement feed fetching
 - [ ] Implement data parsing
@@ -1545,6 +1573,7 @@ def test_login_invalid_credentials(client):
 - [ ] Test API integration
 
 ### Phase 4: Core Endpoints (6 hours)
+
 - [ ] Asteroid feed endpoint with filters
 - [ ] Asteroid detail endpoint
 - [ ] Search endpoint
@@ -1552,12 +1581,14 @@ def test_login_invalid_credentials(client):
 - [ ] Alerts CRUD endpoints
 
 ### Phase 5: Business Logic (3 hours)
+
 - [ ] Risk score calculation
 - [ ] Alert generation service
 - [ ] Database CRUD operations
 - [ ] Data validation
 
 ### Phase 6: Testing & Deployment (3 hours)
+
 - [ ] Unit tests for services
 - [ ] Integration tests for endpoints
 - [ ] Create Dockerfile
@@ -1570,6 +1601,7 @@ def test_login_invalid_credentials(client):
 ## 🎯 API Testing with Postman
 
 ### Collection Structure
+
 ```
 Cosmic Watch API
 ├── Auth
@@ -1595,6 +1627,7 @@ Cosmic Watch API
 ```
 
 ### Environment Variables
+
 ```json
 {
   "base_url": "http://localhost:8000/api/v1",

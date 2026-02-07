@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cosmic-watch-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data # Persist SQLite database
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
+      - NASA_API_KEY=${NASA_API_KEY:-DEMO_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - DATABASE_URL=sqlite:///./data/cosmic_watch.db
+      - DEBUG=${DEBUG:-false}
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cosmic-network
+
+  # Optional: Redis for caching (future enhancement)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: cosmic-watch-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - cosmic-network
+
+networks:
+  cosmic-network:
+    driver: bridge
+
+volumes:
+  sqlite-data:
+  # redis-data:
