@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     logger.info("👋 Goodbye!")
 
 
-app = FastAPI(
+fastapi_app = FastAPI(
     title=settings.APP_NAME,
     description="REST API for monitoring Near-Earth Objects with NASA NeoWs integration",
     version=settings.VERSION,
@@ -46,7 +46,7 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-app.add_middleware(
+fastapi_app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
@@ -55,17 +55,25 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(asteroids.router, prefix="/api/v1")
-app.include_router(watchlist.router, prefix="/api/v1")
-app.include_router(alerts.router, prefix="/api/v1")
+fastapi_app.include_router(auth.router, prefix="/api/v1")
+fastapi_app.include_router(asteroids.router, prefix="/api/v1")
+fastapi_app.include_router(watchlist.router, prefix="/api/v1")
+fastapi_app.include_router(alerts.router, prefix="/api/v1")
 
 
-@app.get("/", tags=["Root"])
+@fastapi_app.get("/", tags=["Root"])
 async def root():
     return {"name": settings.APP_NAME, "version": settings.VERSION, "message": "Welcome to Cosmic Watch API! 🚀", "docs": "/docs"}
 
 
-@app.get("/health", tags=["Health"])
+@fastapi_app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "healthy", "version": settings.VERSION}
+
+
+# Socket.IO WebSocket integration
+from app.utils.websocket import sio
+import socketio
+
+# Wrap FastAPI with Socket.IO - this becomes the main ASGI app
+app = socketio.ASGIApp(sio, fastapi_app)

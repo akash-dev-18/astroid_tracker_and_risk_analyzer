@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RiskBadge, RiskScoreBadge } from "@/components/asteroids/RiskBadge";
 import { AsteroidOrbitScene } from "@/components/three/AsteroidOrbitScene";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -246,6 +247,11 @@ export default function AsteroidDetail() {
           <p className="text-sm text-muted-foreground mt-4 text-center">
             Interactive 3D view showing asteroid orbit relative to Earth. Use mouse to rotate and zoom.
           </p>
+        </div>
+
+        {/* Live Chat */}
+        <div>
+          <ChatPanel asteroidId={asteroid.id} asteroidName={asteroid.name} />
         </div>
       </motion.div>
     </div>
