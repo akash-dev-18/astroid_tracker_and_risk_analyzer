@@ -17,6 +17,7 @@ httpx==0.26.0
 
 # Background Scheduler
 apscheduler==3.10.4
+python-socketio>=5.11.0
 
 # Settings Management
 pydantic-settings==2.1.0
