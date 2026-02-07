@@ -4,6 +4,23 @@ from datetime import date, datetime, timedelta
 from app.models.close_approach import CloseApproach
 
 
+def _parse_approach_date_full(value) -> Optional[datetime]:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, "%Y-%b-%d %H:%M")
+        except ValueError:
+            pass
+        try:
+            return datetime.strptime(value, "%Y-%m-%d %H:%M")
+        except ValueError:
+            pass
+    return None
+
+
 class CRUDCloseApproach:
     def get(self, db: Session, id: int) -> Optional[CloseApproach]:
         return db.query(CloseApproach).filter(CloseApproach.id == id).first()
@@ -30,7 +47,7 @@ class CRUDCloseApproach:
         
         db_obj = CloseApproach(
             asteroid_id=asteroid_id, approach_date=approach_date,
-            approach_date_full=approach_data.get("approach_date_full"),
+            approach_date_full=_parse_approach_date_full(approach_data.get("approach_date_full")),
             velocity_kmh=approach_data.get("velocity_kmh"),
             miss_distance_km=approach_data.get("miss_distance_km"),
             miss_distance_lunar=approach_data.get("miss_distance_lunar"),
@@ -51,7 +68,7 @@ class CRUDCloseApproach:
         ).first()
         
         if existing:
-            existing.approach_date_full = approach_data.get("approach_date_full")
+            existing.approach_date_full = _parse_approach_date_full(approach_data.get("approach_date_full"))
             existing.velocity_kmh = approach_data.get("velocity_kmh")
             existing.miss_distance_km = approach_data.get("miss_distance_km")
             existing.miss_distance_lunar = approach_data.get("miss_distance_lunar")

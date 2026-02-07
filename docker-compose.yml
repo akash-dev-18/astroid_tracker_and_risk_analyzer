@@ -1,0 +1,69 @@
+services:
+  # ============ Backend API ============
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cosmic-watch-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend-data:/app/data
+    environment:
+      - APP_NAME=Cosmic Watch API
+      - VERSION=1.0.0
+      - DEBUG=false
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+      - DATABASE_URL=sqlite:///./data/cosmic_watch.db
+      - NASA_API_KEY=${NASA_API_KEY:-DEMO_KEY}
+      - FRONTEND_URL=http://localhost
+      - ALLOWED_ORIGINS=["http://localhost", "http://localhost:80", "http://frontend"]
+      - ENABLE_SCHEDULER=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - cosmic-network
+
+  # ============ Frontend ============
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cosmic-watch-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cosmic-network
+
+networks:
+  cosmic-network:
+    driver: bridge
+
+volumes:
+  backend-data:
+    driver: local
